@@ -72,8 +72,8 @@ print_help() {
     --gs-BRANCH=<branch-SHA-tag>
                         Name of GsDevKit_home branch, SHA, or tag. Default is 'master'.
 
-                        Environment variable GSCI_DEVKIT_BRANCH may be used to 
-                        specify <branch-SHA-tag>. Command line option overrides 
+                        Environment variable GSCI_DEVKIT_BRANCH may be used to
+                        specify <branch-SHA-tag>. Command line option overrides
                         value of environment variable.
 
     --gs-HOME=<GS_HOME-path>
@@ -83,13 +83,13 @@ print_help() {
                         --gs-DEVKIT_BRANCH option is ignored.
 
     --gs-CLIENTS="<smalltalk-platform>..."
-                        List of Smalltalk client versions to use as a GemStone client. 
+                        List of Smalltalk client versions to use as a GemStone client.
 
-                        Environment variable GSCI_CLIENTS may also be used to 
-                        specify a list of <smalltalk-platform> client versions. 
+                        Environment variable GSCI_CLIENTS may also be used to
+                        specify a list of <smalltalk-platform> client versions.
                         Command line option overrides value of environment variable.
 
-                        If a client is specified, tests are run for both the client 
+                        If a client is specified, tests are run for both the client
                         and server based using the project .smalltalk.ston file.
 
   EXAMPLE:
@@ -143,7 +143,7 @@ is_int() {
 program_exists() {
   local program=$1
 
-  [[ $(which "${program}" 2> /dev/null) ]]
+  [[ $(command -v "${program}" 2> /dev/null) ]]
 }
 
 is_travis_build() {
@@ -152,6 +152,10 @@ is_travis_build() {
 
 is_appveyor_build() {
   [[ "${APPVEYOR:-}" = "True" ]]
+}
+
+is_github_build() {
+  [[ "${GITHUB_ACTIONS:-}" = "true" ]]
 }
 
 is_gitlabci_build() {
@@ -164,6 +168,10 @@ is_linux_build() {
 
 is_cygwin_build() {
   [[ $(uname -s) = "CYGWIN_NT-"* ]]
+}
+
+is_mingw64_build() {
+  [[ $(uname -s) = "MINGW64_NT-"* ]]
 }
 
 is_sudo_enabled() {
@@ -204,7 +212,14 @@ is_spur_image() {
     return 0
   fi
 
-  image_format_number="$(hexdump -n 4 -e '2/4 "%04d " "\n"' "${image_path}")"
+  if hash hexdump 2>/dev/null; then
+    image_format_number="$(hexdump -n 4 -e '2/4 "%04d " "\n"' "${image_path}")"
+  elif hash xxd 2>/dev/null; then
+    image_format_number="$((16#$(xxd -p -l 1 "${image_path}")))"
+  else
+    print_error_and_exit "Unable to detect image format (xxd or hexdump needed)"
+  fi
+
   [[ $((image_format_number>>(spur_bit-1) & 1)) -eq 1 ]]
 }
 
@@ -255,8 +270,10 @@ check_and_consume_build_status_file() {
 finalize() {
   local build_status
 
-  if is_travis_build || is_appveyor_build; then
+  if is_travis_build || is_appveyor_build || is_github_build; then
     upload_coveralls_results
+  else
+    print_info "Skipping coveralls upload."
   fi
 
   if ! is_file "${BUILD_STATUS_FILE}"; then
@@ -291,11 +308,14 @@ download_file() {
   fi
 
   if program_exists "curl"; then
-    curl -f -s -L --retry 3 -o "${target}" "${url}" || print_error_and_exit \
-      "curl failed to download ${url} to '${target}'."
+    curl --fail --silent --show-error --location \
+      --retry 3 --retry-delay 5 --max-time 30 \
+      -o "${target}" "${url}" || print_error_and_exit \
+        "curl failed to download ${url} to '${target}'."
   elif program_exists "wget"; then
-    wget -q -O "${target}" "${url}" || print_error_and_exit \
-      "wget failed to download ${url} to '${target}'."
+    wget -t 3 --retry-connrefused --waitretry=5 --read-timeout=20 --timeout=15 \
+      --no-dns-cache -q -O "${target}" "${url}" || print_error_and_exit \
+        "wget failed to download ${url} to '${target}'."
   else
     print_error_and_exit "Please install curl or wget."
   fi
@@ -319,7 +339,7 @@ extract_file() {
 resolve_path() {
   local path=$1
 
-  if is_cygwin_build; then
+  if is_cygwin_build || is_mingw64_build; then
     echo $(cygpath -w "${path}")
   else
     echo "${path}"
@@ -370,6 +390,11 @@ export_coveralls_data() {
     branch_name="${CI_COMMIT_REF_NAME}"
     url="${CI_PROJECT_URL}"
     job_id="${CI_PIPELINE_ID}.${CI_JOB_ID}"
+  elif is_github_build; then
+    service_name="github"
+    branch_name="${GITHUB_REF}"
+    url="https://github.com/${GITHUB_REPOSITORY}.git"
+    job_id="${GITHUB_RUN_ID}"
   fi
 
   cat >"${SMALLTALK_CI_BUILD}/coveralls_build_data.json" <<EOL
@@ -536,7 +561,7 @@ travis_wait() {
 
   if ! is_int "${timeout}"; then
     $cmd
-    return $?    
+    return $?
   fi
 
   $cmd &

@@ -1,8 +1,8 @@
-# smalltalkCI [![Build Status][travis_b]][travis_url] [![AppVeyor status][appveyor_b]][appveyor_url] [![Coverage Status][coveralls_b]][coveralls_url]
+# smalltalkCI [![GitHub Workflow Status][github_action_b]][github_action_url] [![Travis CI Status][travis_b]][travis_url] [![AppVeyor Status][appveyor_b]][appveyor_url] [![Coverage Status][coveralls_b]][coveralls_url]
 
 Community-supported framework for testing Smalltalk projects on Linux, OS X, and
-Windows with built-in support for [Travis CI][travisCI], [AppVeyor][appveyor],
-and [GitLab CI/CD][gitlab_ci_cd].
+Windows with built-in support for [GitHub Actions][github_action],
+[Travis CI][travisCI], [AppVeyor][appveyor], and [GitLab CI/CD][gitlab_ci_cd].
 
 It is inspired by [builderCI][builderCI] and aims to provide a uniform and easy
 way to load and test Smalltalk projects.
@@ -71,19 +71,24 @@ they can take up a lot of space on your drive.*
 
 | [Squeak][squeak] | [Pharo][pharo]   | [GemStone][gemstone] | [Moose][moose]  |
 | ---------------- | ---------------- | -------------------- | --------------- |
-| `Squeak64-trunk` | `Pharo64-alpha`  | `GemStone64-3.3.x`   | `Moose32-trunk` |
-| `Squeak64-5.2`   | `Pharo64-stable` | `GemStone64-3.2.x`   | `Moose32-6.1`   |
-| `Squeak64-5.1`   | `Pharo64-7.0`    | `GemStone64-3.1.0.x` | `Moose32-6.0`   |
-| `Squeak32-trunk` | `Pharo64-6.1`    | `Gemstone64-2.4.x`   |                 |
-| `Squeak32-5.2`   | `Pharo64-6.0`    |                      |                 |
+| `Squeak64-trunk` | `Pharo64-alpha`  | `GemStone64-3.5.x`   | `Moose64-trunk` |
+| `Squeak64-5.3`   | `Pharo64-stable` | `GemStone64-3.4.x`   | `Moose64-8.0`   |
+| `Squeak64-5.2`   | `Pharo64-9.0`    | `GemStone64-3.3.x`   | `Moose64-7.0`   |
+| `Squeak64-5.1`   | `Pharo64-8.0`    | `GemStone64-3.2.x`   | `Moose32-trunk` |
+| `Squeak32-trunk` | `Pharo64-7.0`    | `Gemstone64-3.1.0.x` | `Moose32-7.0`   |
+| `Squeak32-5.3`   | `Pharo64-6.1`    | `Gemstone64-2.4.x`   | `Moose32-6.1`   |
+| `Squeak32-5.2`   | `Pharo64-6.0`    |                      | `Moose32-6.0`   |
 | `Squeak32-5.1`   | `Pharo32-alpha`  |                      |                 |
 | `Squeak32-5.0`   | `Pharo32-stable` |                      |                 |
-| `Squeak32-4.6`   | `Pharo32-7.0`    |                      |                 |
-| `Squeak32-4.5`   | `Pharo32-6.1`    |                      |                 |
+| `Squeak32-4.6`   | `Pharo32-9.0`    |                      |                 |
+| `Squeak32-4.5`   | `Pharo32-8.0`    |                      |                 |
+|                  | `Pharo32-7.0`    |                      |                 |
+|                  | `Pharo32-6.1`    |                      |                 |
 |                  | `Pharo32-6.0`    |                      |                 |
 |                  | `Pharo32-5.0`    |                      |                 |
 |                  | `Pharo32-4.0`    |                      |                 |
 |                  | `Pharo32-3.0`    |                      |                 |
+|                  |                  |                      |                 |
 
 
 ## <a name="templates"/>Templates
@@ -105,6 +110,12 @@ SmalltalkCISpec {
   ]
 }
 ```
+
+### GitHub Action Template
+
+For GitHub Action templates, please refer to the Marketplace listing of the
+[`setup-smalltalkCI` action][github_action].
+
 
 ### `.travis.yml` Template
 
@@ -163,13 +174,13 @@ environment:
   matrix:
     # Currently, only Squeak and Pharo images are supported on AppVeyor.
     - SMALLTALK: Squeak64-trunk
-    - SMALLTALK: Squeak32-5.0
+    - SMALLTALK: Squeak64-5.0
     - SMALLTALK: Pharo64-alpha
-    - SMALLTALK: Pharo32-6.0
+    - SMALLTALK: Pharo64-6.0
     # ...
 
 platform:
-  - x86
+  - x64
 
 install:
   - '%CYG_EXE% -dgnqNO -R "%CYG_ROOT%" -s "%CYG_MIRROR%" -l "%CYG_CACHE%" -P unzip'
@@ -195,7 +206,7 @@ Squeak325.1:
 
 Pharo64Alpha:
   script: smalltalkci -s "Pharo64-alpha"
-  
+
 Pharo327.0:
   script: smalltalkci -s "Pharo32-7.0"
 
@@ -684,7 +695,7 @@ problem.
 list. Please add [`[ci skip]`][ci_skip] to your commit message.*
 
 
-[travis_b]: https://travis-ci.org/hpi-swa/smalltalkCI.svg?branch=master
+[travis_b]: https://img.shields.io/travis/hpi-swa/smalltalkCI?logo=travis
 [travis_url]: https://travis-ci.org/hpi-swa/smalltalkCI
 [appveyor_b]: https://ci.appveyor.com/api/projects/status/c2uchb5faykdrj3y/branch/master?svg=true
 [appveyor_url]: https://ci.appveyor.com/project/smalltalkCI/smalltalkci/branch/master
@@ -707,6 +718,9 @@ list. Please add [`[ci skip]`][ci_skip] to your commit message.*
 [esug_logo]: https://raw.githubusercontent.com/hpi-swa/smalltalkCI/assets/esug/logo.png
 [filetree]: https://github.com/dalehenrich/filetree
 [gemstone]: https://gemtalksystems.com/
+[github_action]: https://github.com/marketplace/actions/setup-smalltalkci
+[github_action_b]: https://img.shields.io/github/workflow/status/hpi-swa/smalltalkCI/smalltalkCI%20Self%20Test?logo=github
+[github_action_url]: https://github.com/hpi-swa/smalltalkCI/actions
 [gitlab_ci_cd]: https://about.gitlab.com/features/gitlab-ci-cd/
 [gofer]: http://www.lukas-renggli.ch/blog/gofer
 [gs]: https://github.com/hpi-swa/smalltalkCI/issues/28

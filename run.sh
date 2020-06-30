@@ -15,13 +15,12 @@ readonly GITHUB_REPO_URL="https://github.com/hpi-swa/smalltalkCI"
 initialize() {
   local resolved_path
 
-  trap handle_exit EXIT
-  trap handle_error ERR
-  trap handle_interrupt INT
-
-  # Fail if OS is not supported
+  # Set up traps, otherwise fail if OS is not supported
   case "$(uname -s)" in
-    "Linux"|"Darwin"|"CYGWIN_NT-"*)
+    "Linux"|"Darwin"|"CYGWIN_NT-"*|"MINGW64_NT-"*)
+      trap handle_exit EXIT
+      trap handle_error ERR
+      trap handle_interrupt INT
       ;;
     *)
       echo "Unsupported platform '$(uname -s)'." 1>&2
@@ -130,7 +129,10 @@ ensure_ston_config_exists() {
 
   if is_travis_build; then
     if is_not_empty "${TRAVIS_SMALLTALK_CONFIG:-}"; then
-      config_ston="${TRAVIS_BUILD_DIR}/${TRAVIS_SMALLTALK_CONFIG}"
+      # If the variable is a list (ruby array like ["a", "b", "c"]) extract the first value
+      # This is a workaround for https://github.com/hpi-swa/smalltalkCI/issues/448
+      first_config="$(echo ${TRAVIS_SMALLTALK_CONFIG//[\[\]]} | awk -F',' '{print $1}')"
+      config_ston="${TRAVIS_BUILD_DIR}/${first_config}"
     else
       locate_ston_config
     fi
@@ -196,15 +198,17 @@ in ${project_home}."
 #   config_smalltalk
 ################################################################################
 select_smalltalk() {
-  local images="Squeak64-trunk Squeak64-5.2 Squeak64-5.1
-                Squeak32-trunk Squeak32-5.2 Squeak32-5.1 Squeak32-5.0
+  local images="Squeak64-trunk Squeak64-5.3 Squeak64-5.2 Squeak64-5.1
+                Squeak32-trunk Squeak32-5.3 Squeak32-5.2 Squeak32-5.1 Squeak32-5.0
                 Squeak32-4.6 Squeak32-4.5
-                Pharo64-stable Pharo64-alpha Pharo64-7.0 Pharo64-6.1 Pharo64-6.0
-                Pharo32-stable Pharo32-alpha Pharo32-7.0 Pharo32-6.0 Pharo32-5.0
+                Pharo64-stable Pharo64-alpha Pharo64-9.0 Pharo64-8.0 Pharo64-7.0 Pharo64-6.1 Pharo64-6.0
+                Pharo32-stable Pharo32-alpha Pharo32-9.0 Pharo32-8.0 Pharo32-7.0 Pharo32-6.0 Pharo32-5.0
                 Pharo32-4.0 Pharo32-3.0
+                GemStone64-3.5.0 GemStone64-3.4.3 GemStone64-3.3.9
                 GemStone64-3.3.2 GemStone64-3.3.0 GemStone64-3.2.12
                 GemStone64-3.1.0.6
-                Moose32-trunk Moose32-6.1 Moose32-6.0"
+                Moose64-trunk Moose64-8.0 Moose64-7.0
+                Moose32-trunk Moose32-8.0 Moose32-7.0 Moose32-6.1 Moose32-6.0"
 
   if is_not_empty "${config_smalltalk}"; then
     return
@@ -377,11 +381,16 @@ add_env_vars() {
 # Raise RTPRIO of current bash for OpenSmalltalk VMs with threaded heartbeat.
 ################################################################################
 raise_rtprio_limit() {
+  if ! program_exists "gcc"; then
+    print_info "Unable to raise real-time priority: gcc is not available."
+    return
+  fi
+
   fold_start set_rtprio_limit "Raising real-time priority for OpenSmalltalk VMs with threaded heartbeat..."
   pushd $(mktemp -d) > /dev/null
   gcc -o "set_rtprio_limit" "${SMALLTALK_CI_HOME}/utils/set_rtprio_limit.c"
   chmod +x "./set_rtprio_limit"
-  sudo "./set_rtprio_limit" $$
+  sudo "./set_rtprio_limit" $$ || true
   popd > /dev/null
   fold_end set_rtprio_limit
 }
